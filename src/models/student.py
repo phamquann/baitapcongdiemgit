@@ -64,3 +64,65 @@ class Student:
         if not isinstance(other, Student):
             return False
         return self.student_id == other.student_id
+    
+    def to_dict(self) -> dict:
+        """
+        Chuyển đổi sinh viên thành dictionary.
+        
+        Returns:
+            dict: Dictionary chứa thông tin sinh viên
+        """
+        return {
+            'name': self.name,
+            'student_id': self.student_id,
+            'score': self.score
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        """
+        Tạo sinh viên từ dictionary.
+        
+        Args:
+            data (dict): Dictionary chứa thông tin sinh viên
+            
+        Returns:
+            Student: Đối tượng sinh viên mới
+        """
+        return cls(
+            name=data['name'],
+            student_id=data['student_id'],
+            score=data['score']
+        )
+    
+    def update_score(self, new_score: float) -> None:
+        """
+        Cập nhật điểm số cho sinh viên.
+        
+        Args:
+            new_score (float): Điểm số mới (0.0 - 10.0)
+            
+        Raises:
+            ValueError: Nếu điểm số không hợp lệ
+        """
+        if not 0.0 <= new_score <= 10.0:
+            raise ValueError("Điểm số phải trong khoảng 0.0 - 10.0")
+        self.score = float(new_score)
+    
+    def get_grade_letter(self) -> str:
+        """
+        Trả về xếp loại học lực dựa trên điểm số.
+        
+        Returns:
+            str: Xếp loại (A, B, C, D, F)
+        """
+        if self.score >= 8.5:
+            return 'A'
+        elif self.score >= 7.0:
+            return 'B'
+        elif self.score >= 5.5:
+            return 'C'
+        elif self.score >= 4.0:
+            return 'D'
+        else:
+            return 'F'
