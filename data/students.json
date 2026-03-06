@@ -1,0 +1,26 @@
+[
+  {
+    "id": "SV001",
+    "name": "Nguyễn Văn A",
+    "age": 20,
+    "grade": 8.5
+  },
+  {
+    "id": "SV002",
+    "name": "Trần Thị B",
+    "age": 21,
+    "grade": 7.2
+  },
+  {
+    "id": "SV004",
+    "name": "Phạm D",
+    "age": 19,
+    "grade": 9.1
+  },
+  {
+    "id": "SV005",
+    "name": "Hoàng Văn E",
+    "age": 23,
+    "grade": 7.8
+  }
+]
