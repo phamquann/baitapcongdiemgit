@@ -23,22 +23,31 @@ def delete_student_by_mssv(mssv: str) -> bool:
 
     try:
         with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+            # Check if file is empty
+            content = f.read()
+            if not content:
+                return False
+            data = json.loads(content)
     except (json.JSONDecodeError, OSError):
         return False
 
     if not isinstance(data, list):
         return False
 
+    # Find the student index
     original_len = len(data)
-    filtered: List[Dict[str, Any]] = [s for s in data if str(s.get("mssv", "")) != str(mssv)]
+    # Perform case-insensitive comparison if mssv is alphanumeric string
+    filtered = [s for s in data if str(s.get("mssv", "")).strip().lower() != str(mssv).strip().lower()]
 
     if len(filtered) == original_len:
+        # No student found with that MSSV
         return False
 
     try:
+        # Ensure directory exists before writing (though it should since we read from it)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(filtered, f, ensure_ascii=False, indent=2)
+            json.dump(filtered, f, ensure_ascii=False, indent=4)
     except OSError:
         return False
 
