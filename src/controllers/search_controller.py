@@ -86,3 +86,5 @@ def display_search_results(results):
         print(f"{student['mssv']:<15} {student['name']:<30} {student['score']:<10}")
     
     print(f"{'='*60}\n")
+
+# Cập nhật lần 2: Hoàn thiện chức năng tìm kiếm
