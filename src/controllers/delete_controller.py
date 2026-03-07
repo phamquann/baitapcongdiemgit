@@ -24,8 +24,12 @@ def _load_students() -> List[Dict[str, Any]]:
 
 def _save_students(students: List[Dict[str, Any]]) -> None:
 	os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-	with open(DATA_FILE, 'w', encoding='utf-8') as f:
+	# Write to a temporary file and atomically replace the data file.
+	tmp_path = DATA_FILE + '.tmp'
+	with open(tmp_path, 'w', encoding='utf-8') as f:
 		json.dump(students, f, ensure_ascii=False, indent=2)
+	# Use os.replace for an atomic rename (works across platforms)
+	os.replace(tmp_path, DATA_FILE)
 
 
 def delete_student_by_mssv(mssv: str) -> bool:
@@ -33,9 +37,24 @@ def delete_student_by_mssv(mssv: str) -> bool:
 
 	Returns True if a student was removed, False if no matching student found.
 	"""
+	def _normalize_mssv(value: Any) -> str:
+		"""Normalize MSSV for comparison: strip whitespace, collapse numeric forms.
+
+		If the value is purely numeric, convert to canonical integer string
+		(to avoid mismatches like '001' vs '1'). Otherwise compare lower-cased
+		stripped strings.
+		"""
+		s = str(value).strip()
+		if s.isdigit():
+			try:
+				return str(int(s))
+			except ValueError:
+				return s
+		return s.lower()
+
 	students = _load_students()
-	mssv_str = str(mssv)
-	new_students = [s for s in students if str(s.get('mssv')) != mssv_str]
+	norm = _normalize_mssv(mssv)
+	new_students = [s for s in students if _normalize_mssv(s.get('mssv', '')) != norm]
 	if len(new_students) == len(students):
 		return False
 	_save_students(new_students)
