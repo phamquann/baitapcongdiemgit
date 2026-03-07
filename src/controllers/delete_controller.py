@@ -1,66 +1,76 @@
+"""Controller for deleting a student by MSSV.
+
+This module intentionally reads/writes the JSON data file directly so it
+doesn't require changes to other modules.
+"""
+from __future__ import annotations
+
 import json
 import os
-from typing import Any, Dict, List
+from typing import List, Dict, Any
 
 
-def _students_file_path() -> str:
-    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    return os.path.join(root, "data", "students.json")
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+DATA_FILE = os.path.join(ROOT, 'data', 'students.json')
+
+
+def _load_students() -> List[Dict[str, Any]]:
+	try:
+		with open(DATA_FILE, 'r', encoding='utf-8') as f:
+			return json.load(f)
+	except (FileNotFoundError, json.JSONDecodeError):
+		return []
+
+
+def _save_students(students: List[Dict[str, Any]]) -> None:
+	os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+	# Write to a temporary file and atomically replace the data file.
+	tmp_path = DATA_FILE + '.tmp'
+	with open(tmp_path, 'w', encoding='utf-8') as f:
+		json.dump(students, f, ensure_ascii=False, indent=2)
+	# Use os.replace for an atomic rename (works across platforms)
+	os.replace(tmp_path, DATA_FILE)
 
 
 def delete_student_by_mssv(mssv: str) -> bool:
-    """Delete a student from data/students.json by MSSV.
+	"""Delete student with the given `mssv`.
 
-    Args:
-        mssv: Student ID to delete (string comparison).
+	Returns True if a student was removed, False if no matching student found.
+	"""
+	def _normalize_mssv(value: Any) -> str:
+		"""Normalize MSSV for comparison: strip whitespace, collapse numeric forms.
 
-    Returns:
-        True if a student was found and deleted, False otherwise.
-    """
-    path = _students_file_path()
-    if not os.path.exists(path):
-        return False
+		If the value is purely numeric, convert to canonical integer string
+		(to avoid mismatches like '001' vs '1'). Otherwise compare lower-cased
+		stripped strings.
+		"""
+		s = str(value).strip()
+		if s.isdigit():
+			try:
+				return str(int(s))
+			except ValueError:
+				return s
+		return s.lower()
 
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            # Check if file is empty
-            content = f.read()
-            if not content:
-                return False
-            data = json.loads(content)
-    except (json.JSONDecodeError, OSError):
-        return False
-
-    if not isinstance(data, list):
-        return False
-
-    # Find the student index
-    original_len = len(data)
-    # Perform case-insensitive comparison if mssv is alphanumeric string
-    filtered = [s for s in data if str(s.get("mssv", "")).strip().lower() != str(mssv).strip().lower()]
-
-    if len(filtered) == original_len:
-        # No student found with that MSSV
-        return False
-
-    try:
-        # Ensure directory exists before writing (though it should since we read from it)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(filtered, f, ensure_ascii=False, indent=4)
-    except OSError:
-        return False
-
-    return True
+	students = _load_students()
+	norm = _normalize_mssv(mssv)
+	new_students = [s for s in students if _normalize_mssv(s.get('mssv', '')) != norm]
+	if len(new_students) == len(students):
+		return False
+	_save_students(new_students)
+	return True
 
 
-if __name__ == "__main__":
-    # quick manual test: pass MSSV as input
-    import sys
+if __name__ == '__main__':
+	import sys
 
-    if len(sys.argv) < 2:
-        print("Usage: python delete_controller.py <mssv>")
-    else:
-        m = sys.argv[1]
-        ok = delete_student_by_mssv(m)
-        print("Deleted" if ok else "Not found or error")
+	if len(sys.argv) < 2:
+		print('Usage: python delete_controller.py <mssv>')
+		raise SystemExit(1)
+
+	mssv_arg = sys.argv[1]
+	ok = delete_student_by_mssv(mssv_arg)
+	if ok:
+		print(f'Deleted student with mssv={mssv_arg}')
+	else:
+		print(f'No student found with mssv={mssv_arg}')
